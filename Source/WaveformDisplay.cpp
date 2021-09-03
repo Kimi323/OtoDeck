@@ -21,6 +21,7 @@ WaveformDisplay::WaveformDisplay(AudioFormatManager& formatManagerToUse,
     // In your constructor, you should add any child components, and
     // initialise any special settings that your component needs.
     audioThumb.addChangeListener(this);
+    //audioplayhead->getCurrentPosition(currentPositionInfo);
 }
 
 WaveformDisplay::~WaveformDisplay()
@@ -52,6 +53,8 @@ void WaveformDisplay::paint (juce::Graphics& g)
         // draw a rectangle for the playhead
         g.setColour(Colours::limegreen);
         g.drawRect(position * getWidth(), 0, getWidth() / 20, getHeight());
+        g.drawText (std::to_string(currentPositionInfo.bpm), getLocalBounds(),
+                    juce::Justification::centred, true);
     } else {
         // draw some placeholder text
         g.setFont (20.0f);

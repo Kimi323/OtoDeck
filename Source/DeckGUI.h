@@ -1,13 +1,3 @@
-/*
-  ==============================================================================
-
-    DeckGUI.h
-    Created: 13 Mar 2020 6:44:48pm
-    Author:  matthew
-
-  ==============================================================================
-*/
-
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
@@ -45,16 +35,25 @@ public:
 
 private:
 
-    TextButton playButton{"PLAY"};
-    TextButton stopButton{"STOP"};
+    //TextButton playButton{"PLAY/STOP"};
+    ImageButton playButton;
+    TextButton loopButton{"LOOP"};
     TextButton loadButton{"LOAD"};
+    TextButton prevButton{"PREV"};
+    TextButton nextButton{"NEXT"};
   
-    Slider volSlider; 
+    Slider volDial;
+    Label volLabel;
+    
     Slider speedSlider;
+    Label speedLabel;
+    
     Slider posSlider;
 
     DJAudioPlayer* player;
     WaveformDisplay waveformDisplay;
+    
+    bool isPlaying;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DeckGUI)
 };

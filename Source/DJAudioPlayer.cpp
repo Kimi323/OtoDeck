@@ -1,13 +1,3 @@
-/*
-==============================================================================
-
-DJAudioPlayer.cpp
-Created: 13 Mar 2020 4:22:22pm
-Author:  matthew
-
-==============================================================================
-*/
-
 #include "DJAudioPlayer.h"
 
 DJAudioPlayer::DJAudioPlayer(AudioFormatManager& _formatManager) :
@@ -50,9 +40,9 @@ true));
 }
 void DJAudioPlayer::setGain(double gain)
 {
-    if (gain < 0 || gain > 1.0)
+    if (gain < 0 || gain > 2.0)
     {
-        std::cout << "DJAudioPlayer::setGain gain should be between 0 and 1" << std::endl;
+        std::cout << "DJAudioPlayer::setGain gain should be between 0 and 2" << std::endl;
     }
     else {
         transportSource.setGain(gain);

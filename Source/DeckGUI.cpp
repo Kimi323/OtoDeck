@@ -1,13 +1,3 @@
-/*
-  ==============================================================================
-
-    DeckGUI.cpp
-    Created: 13 Mar 2020 6:44:48pm
-    Author:  matthew
-
-  ==============================================================================
-*/
-
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "DeckGUI.h"
 
@@ -16,30 +6,42 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
                  AudioFormatManager& formatManagerToUse,
                  AudioThumbnailCache& cacheToUse
                  ) : player(_player),
-                     waveformDisplay(formatManagerToUse, cacheToUse)
+                     waveformDisplay(formatManagerToUse, cacheToUse),
+                    isPlaying(false)
 {
 
     addAndMakeVisible(playButton);
-    addAndMakeVisible(stopButton);
+    addAndMakeVisible(loopButton);
     addAndMakeVisible(loadButton);
+    addAndMakeVisible(prevButton);
+    addAndMakeVisible(nextButton);
        
-    addAndMakeVisible(volSlider);
+    addAndMakeVisible(volDial);
+    volLabel.setText ("Volume", juce::dontSendNotification);
+    volLabel.attachToComponent (&volDial, true);
+    
     addAndMakeVisible(speedSlider);
+    speedLabel.setText ("Speed", juce::dontSendNotification);
+    speedLabel.attachToComponent (&speedSlider, true);
+    
     addAndMakeVisible(posSlider);
     
     addAndMakeVisible(waveformDisplay);
 
 
     playButton.addListener(this);
-    stopButton.addListener(this);
+    loopButton.addListener(this);
     loadButton.addListener(this);
+    prevButton.addListener(this);
+    nextButton.addListener(this);
 
-    volSlider.addListener(this);
+    volDial.addListener(this);
     speedSlider.addListener(this);
     posSlider.addListener(this);
 
 
-    volSlider.setRange(0.0, 1.0);
+    volDial.setRange(0.0, 2.0);
+    volDial.setValue(1.0);
     speedSlider.setRange(0.0, 100.0);
     posSlider.setRange(0.0, 1.0);
     
@@ -63,25 +65,55 @@ void DeckGUI::paint (Graphics& g)
 
     g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));   // clear the background
 
-    g.setColour (Colours::grey);
+    g.setColour (Colours::green);
     g.drawRect (getLocalBounds(), 1);   // draw an outline around the component
 
     g.setColour (Colours::white);
     g.setFont (14.0f);
-    g.drawText ("DeckGUI", getLocalBounds(),
-                Justification::centred, true);   // draw some placeholder text
+    //g.drawText ("DeckGUI", getLocalBounds(), Justification::centred, true);   // draw some placeholder text
+    
+    // draw line
+    //g.setColour (juce::Colours::green);
+    //g.drawLine (15, 50, 15, getHeight() / 4 * 3, 5);
 }
 
 void DeckGUI::resized()
 {
-    double rowH = getHeight() / 8;
-    playButton.setBounds(0, 0, getWidth(), rowH);
-    stopButton.setBounds(0, rowH, getWidth(), rowH);  
-    volSlider.setBounds(0, rowH * 2, getWidth(), rowH);
-    speedSlider.setBounds(0, rowH * 3, getWidth(), rowH);
-    posSlider.setBounds(0, rowH * 4, getWidth(), rowH);
-    waveformDisplay.setBounds(0, rowH * 5, getWidth(), rowH * 2);
-    loadButton.setBounds(0, rowH * 7, getWidth(), rowH);
+    double rowWidth = getWidth() / 6;
+    double rowHeight = getHeight() / 6;
+    double paddingX = rowWidth * 0.1;
+    double paddingY = rowHeight * 0.1;
+    
+    // draw vertical slider for speed control
+    speedSlider.setSliderStyle(Slider::SliderStyle::LinearVertical);
+    speedSlider.setBounds(rowWidth, paddingY, rowWidth, rowHeight * 3);
+    speedSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, rowWidth / 2, rowHeight / 4);
+    speedSlider.setNumDecimalPlacesToDisplay(0);
+    speedSlider.setTextValueSuffix ("%");
+    
+    // volDial
+    volDial.setSliderStyle (juce::Slider::Rotary);
+    volDial.setBounds(rowWidth * 3, paddingY, rowWidth * 3, rowHeight * 3);
+    volDial.setTextBoxStyle(juce::Slider::TextBoxBelow, true, rowWidth / 2, rowHeight / 4);
+    volDial.setNumDecimalPlacesToDisplay(2);
+    
+    // playButton
+    playButton.setBounds(paddingX, rowHeight * 3.5, rowWidth, rowHeight);
+    // load image in memory for button to use
+    Image playButtonImg = ImageCache::getFromMemory (BinaryData::start_stop_button_png, BinaryData::start_stop_button_pngSize);
+    playButton.setImages(false, true, false, playButtonImg, 1.0f, {}, {}, 1.0f, {}, {}, 1.0f, {});
+    
+    loopButton.setBounds(rowWidth * 1 + paddingX * 3, rowHeight * 3.5, rowWidth, rowHeight);
+    loadButton.setBounds(rowWidth * 2 + paddingX * 5, rowHeight * 3.5, rowWidth, rowHeight);
+    prevButton.setBounds(rowWidth * 3 + paddingX * 7, rowHeight * 3.5, rowWidth, rowHeight);
+    nextButton.setBounds(rowWidth * 4 + paddingX * 9, rowHeight * 3.5, rowWidth, rowHeight);
+    
+    waveformDisplay.setBounds(0, rowHeight * 4.5, getWidth(), rowHeight);
+    
+    // posSlider without textbox
+    posSlider.setBounds(0, rowHeight * 5.5, getWidth(), rowHeight / 2);
+    posSlider.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, 0);
+    
 
 }
 
@@ -90,12 +122,18 @@ void DeckGUI::buttonClicked(Button* button)
     if (button == &playButton)
     {
         std::cout << "Play button was clicked " << std::endl;
-        player->start();
+        if (!isPlaying) {
+            player->start();
+            isPlaying = true;
+        } else {
+            player->stop();
+            isPlaying = false;
+        }
     }
-     if (button == &stopButton)
+     if (button == &loopButton)
     {
-        std::cout << "Stop button was clicked " << std::endl;
-        player->stop();
+        std::cout << "loop button was clicked " << std::endl;
+        // TODO: loop the current song
 
     }
     if (button == &loadButton)
@@ -113,7 +151,7 @@ void DeckGUI::buttonClicked(Button* button)
 
 void DeckGUI::sliderValueChanged (Slider *slider)
 {
-    if (slider == &volSlider)
+    if (slider == &volDial)
     {
         player->setGain(slider->getValue());
     }

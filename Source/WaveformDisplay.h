@@ -35,5 +35,8 @@ private:
     AudioThumbnail audioThumb;
     bool fileLoaded;
     double position;
+    
+    AudioPlayHead *audioplayhead;
+    AudioPlayHead::CurrentPositionInfo currentPositionInfo;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveformDisplay)
 };

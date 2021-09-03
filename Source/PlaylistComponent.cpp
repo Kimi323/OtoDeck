@@ -41,8 +41,8 @@ void PlaylistComponent::paint (juce::Graphics& g)
        You should replace everything in this method with your own
        drawing code..
     */
-
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));   // clear the background
+    // clear the background
+    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
     g.setColour (juce::Colours::grey);
     g.drawRect (getLocalBounds(), 1);   // draw an outline around the component
@@ -57,7 +57,7 @@ void PlaylistComponent::resized()
 {
     // This method is where you should set the bounds of any child
     // components that your component contains..
-    tableComponent.setBounds(0, 0, getWidth(), getHeight());
+    tableComponent.setBounds(0, 100, getWidth(), getHeight());
 }
 
 int PlaylistComponent::getNumRows() {
