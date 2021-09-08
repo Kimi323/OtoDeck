@@ -76,14 +76,29 @@ void DJAudioPlayer::setPositionRelative(double pos)
     }
 }
 
+double DJAudioPlayer::getTrackLengthInSeconds()
+{
+    return transportSource.getLengthInSeconds();
+}
+
+bool DJAudioPlayer::isEndOfTrack()
+{
+    return transportSource.getCurrentPosition() == transportSource.getLengthInSeconds();
+}
 
 void DJAudioPlayer::start()
 {
     transportSource.start();
 }
+
 void DJAudioPlayer::stop()
 {
   transportSource.stop();
+}
+
+bool DJAudioPlayer::isPlaying()
+{
+    return transportSource.isPlaying();
 }
 
 double DJAudioPlayer::getPositionRelative() {

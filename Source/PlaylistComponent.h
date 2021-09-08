@@ -49,9 +49,13 @@ public:
                                         Component* existingComponentToUpdate) override;
     
     void buttonClicked(Button *button) override;
+    void addToPlaylist(std::string trackName);
     
 private:
     TableListBox tableComponent;
-    std::vector<std::string> trackTitles;
+    TextEditor inputArea;
+    TextButton searchButton{"SEARCH"};
+    TextButton clearButton{"CLEAR"};
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PlaylistComponent)
 };

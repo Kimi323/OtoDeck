@@ -7,7 +7,8 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
                  AudioThumbnailCache& cacheToUse
                  ) : player(_player),
                      waveformDisplay(formatManagerToUse, cacheToUse),
-                    isPlaying(false)
+                     currentIndex(0),
+                     isLooping(false)
 {
 
     addAndMakeVisible(playButton);
@@ -42,10 +43,14 @@ DeckGUI::DeckGUI(DJAudioPlayer* _player,
 
     volDial.setRange(0.0, 2.0);
     volDial.setValue(1.0);
-    speedSlider.setRange(0.0, 100.0);
-    posSlider.setRange(0.0, 1.0);
+    speedSlider.setRange(0.25, 5.0);
+    speedSlider.setValue(1.00);
     
-    startTimer(500);
+    //double maxPos = player->getTrackLengthInSeconds();
+    posSlider.setRange(0.0, 1.0);
+    posSlider.setValue(0.0);
+    
+    startTimer(50);
 
 }
 
@@ -84,35 +89,37 @@ void DeckGUI::resized()
     double paddingX = rowWidth * 0.1;
     double paddingY = rowHeight * 0.1;
     
+    waveformDisplay.setBounds(0, paddingY, getWidth(), rowHeight);
+    
+    // posSlider without textbox
+    posSlider.setBounds(0, paddingY + rowHeight, getWidth(), rowHeight / 2);
+    posSlider.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, 0);
+    
     // draw vertical slider for speed control
     speedSlider.setSliderStyle(Slider::SliderStyle::LinearVertical);
-    speedSlider.setBounds(rowWidth, paddingY, rowWidth, rowHeight * 3);
-    speedSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, rowWidth / 2, rowHeight / 4);
-    speedSlider.setNumDecimalPlacesToDisplay(0);
-    speedSlider.setTextValueSuffix ("%");
+    speedSlider.setBounds(rowWidth, rowHeight * 1.5, rowWidth, rowHeight * 3);
+    speedSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, rowWidth, rowHeight / 4);
+    speedSlider.setNumDecimalPlacesToDisplay(2);
+    speedSlider.setTextValueSuffix ("x");
     
     // volDial
     volDial.setSliderStyle (juce::Slider::Rotary);
-    volDial.setBounds(rowWidth * 3, paddingY, rowWidth * 3, rowHeight * 3);
-    volDial.setTextBoxStyle(juce::Slider::TextBoxBelow, true, rowWidth / 2, rowHeight / 4);
+    volDial.setBounds(rowWidth * 3, rowHeight * 1.5, rowWidth * 3, rowHeight * 3);
+    volDial.setTextBoxStyle(juce::Slider::TextBoxBelow, true, rowWidth, rowHeight / 4);
     volDial.setNumDecimalPlacesToDisplay(2);
     
     // playButton
-    playButton.setBounds(paddingX, rowHeight * 3.5, rowWidth, rowHeight);
+    playButton.setBounds(paddingX, rowHeight * 5 - paddingY, rowWidth, rowHeight);
     // load image in memory for button to use
     Image playButtonImg = ImageCache::getFromMemory (BinaryData::start_stop_button_png, BinaryData::start_stop_button_pngSize);
     playButton.setImages(false, true, false, playButtonImg, 1.0f, {}, {}, 1.0f, {}, {}, 1.0f, {});
     
-    loopButton.setBounds(rowWidth * 1 + paddingX * 3, rowHeight * 3.5, rowWidth, rowHeight);
-    loadButton.setBounds(rowWidth * 2 + paddingX * 5, rowHeight * 3.5, rowWidth, rowHeight);
-    prevButton.setBounds(rowWidth * 3 + paddingX * 7, rowHeight * 3.5, rowWidth, rowHeight);
-    nextButton.setBounds(rowWidth * 4 + paddingX * 9, rowHeight * 3.5, rowWidth, rowHeight);
+    loopButton.setBounds(rowWidth * 1 + paddingX * 3, rowHeight * 5 - paddingY, rowWidth, rowHeight);
+    loadButton.setBounds(rowWidth * 2 + paddingX * 5, rowHeight * 5 - paddingY, rowWidth, rowHeight);
+    prevButton.setBounds(rowWidth * 3 + paddingX * 7, rowHeight * 5 - paddingY, rowWidth, rowHeight);
+    nextButton.setBounds(rowWidth * 4 + paddingX * 9, rowHeight * 5 - paddingY, rowWidth, rowHeight);
     
-    waveformDisplay.setBounds(0, rowHeight * 4.5, getWidth(), rowHeight);
-    
-    // posSlider without textbox
-    posSlider.setBounds(0, rowHeight * 5.5, getWidth(), rowHeight / 2);
-    posSlider.setTextBoxStyle(juce::Slider::NoTextBox, 0, 0, 0);
+
     
 
 }
@@ -122,30 +129,67 @@ void DeckGUI::buttonClicked(Button* button)
     if (button == &playButton)
     {
         std::cout << "Play button was clicked " << std::endl;
-        if (!isPlaying) {
-            player->start();
-            isPlaying = true;
-        } else {
+        if (player->isPlaying()) {
             player->stop();
-            isPlaying = false;
+        } else {
+            player->start();
         }
     }
-     if (button == &loopButton)
+    if (button == &loopButton)
     {
-        std::cout << "loop button was clicked " << std::endl;
-        // TODO: loop the current song
-
+        if (!isLooping) {
+            isLooping = true;
+        } else {
+            isLooping = false;
+        }
+        std::cout << "isLooping is set to" << isLooping << std::endl;
     }
     if (button == &loadButton)
     {
         FileChooser chooser{"Select a file..."};
         if (chooser.browseForFileToOpen())
         {
-            // player is pointer, why only player is pointer?
+            // get track name and add to playlist
+            std::string trackName = chooser.getResult().getFileNameWithoutExtension().toStdString();
+            playlistComponent.addToPlaylist(trackName);
+            
+            // add current url into urlList
+            urlList.push_back(URL{chooser.getResult()});
+            currentIndex = urlList.size() - 1;
+            // TODO:player is pointer, why only player is pointer?
+            // load url of current selected track
             player->loadURL(URL{chooser.getResult()});
             // waveformDisplay is not a pointer
             waveformDisplay.loadURL(URL{chooser.getResult()});
         }
+    }
+    // if next button is clicked and at least one track loaded
+    if (button == &nextButton && !urlList.empty())
+    {
+        // update current index when not the last track
+        if (currentIndex < urlList.size() - 1)
+        {
+            currentIndex = currentIndex + 1;
+        }
+        // load url of next track
+        player->loadURL(urlList.at(currentIndex));
+        waveformDisplay.loadURL(urlList.at(currentIndex));
+        player->start();
+        std::cout << "nextButton clicked" << std::endl;
+    }
+    // if prev button is clicked and at least one track loaded
+    if (button == &prevButton && !urlList.empty())
+    {
+        // update current index when not the last track
+        if (currentIndex > 0)
+        {
+            currentIndex = currentIndex - 1;
+        }
+        // load url of next track
+        player->loadURL(urlList.at(currentIndex));
+        waveformDisplay.loadURL(urlList.at(currentIndex));
+        player->start();
+        std::cout << "prevButton clicked" << std::endl;
     }
 }
 
@@ -182,7 +226,22 @@ void DeckGUI::filesDropped (const StringArray &files, int x, int y)
     player->loadURL(URL{File{files[0]}});
   }
 }
-    
+
 void DeckGUI::timerCallback() {
-    waveformDisplay.setPositionRelative(player->getPositionRelative());
+    double currentPos = player->getPositionRelative();
+    waveformDisplay.setPositionRelative(currentPos);
+    
+    // before track is loaded, set posSlider value to 0.0
+    if (isnan(currentPos)) {
+        posSlider.setValue(0.0);
+    } else {
+        // update polSlider position
+        posSlider.setValue(currentPos);
+    }
+    
+    if (player->isEndOfTrack() && !urlList.empty() && isLooping) {
+        player->loadURL(urlList.at(currentIndex));
+        player->start();
+    }
+    
 }

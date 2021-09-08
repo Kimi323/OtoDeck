@@ -10,23 +10,30 @@
 
 #include <JuceHeader.h>
 #include "PlaylistComponent.h"
+#include <algorithm>
 
 //==============================================================================
+std::vector<std::string> trackTitles;
+std::vector<std::string> trackTitles_bk;
+
 PlaylistComponent::PlaylistComponent()
 {
-    // In your constructor, you should add any child components, and
-    // initialise any special settings that your component needs.
-    trackTitles.push_back("track1");
-    trackTitles.push_back("track2");
-    trackTitles.push_back("track3");
-    trackTitles.push_back("track4");
-    trackTitles.push_back("track5");
-    trackTitles.push_back("track6");
-    
-    tableComponent.getHeader().addColumn("Track title", 1, 400);
-    tableComponent.getHeader().addColumn("", 2, 200);
+    // TODO: why getWidth() cannot be used?
+    tableComponent.getHeader().addColumn("Track title", 1, 200);
+    tableComponent.getHeader().addColumn("Length", 2, 200);
+    tableComponent.getHeader().addColumn("bpm", 3, 200);
+    tableComponent.getHeader().addColumn("", 4, 200);
     tableComponent.setModel(this);
     addAndMakeVisible(tableComponent);
+    
+    addAndMakeVisible(inputArea);
+    addAndMakeVisible(searchButton);
+    searchButton.addListener(this);
+    addAndMakeVisible(clearButton);
+    clearButton.addListener(this);
+    //searchButton.setText ("Search for track", juce::dontSendNotification);
+    //searchButton.attachToComponent (&inputArea, true);
+    //trackTitles.push_back("test");
 }
 
 PlaylistComponent::~PlaylistComponent()
@@ -44,23 +51,25 @@ void PlaylistComponent::paint (juce::Graphics& g)
     // clear the background
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
-    g.setColour (juce::Colours::grey);
+    g.setColour (juce::Colours::orangered);
     g.drawRect (getLocalBounds(), 1);   // draw an outline around the component
 
     g.setColour (juce::Colours::white);
     g.setFont (14.0f);
-    g.drawText ("PlaylistComponent", getLocalBounds(),
-                juce::Justification::centred, true);   // draw some placeholder text
+//    g.drawText ("PlaylistComponent", getLocalBounds(),juce::Justification::centred, true);   // draw some placeholder text
 }
 
 void PlaylistComponent::resized()
 {
-    // This method is where you should set the bounds of any child
-    // components that your component contains..
-    tableComponent.setBounds(0, 100, getWidth(), getHeight());
+    tableComponent.setBoundsInset (BorderSize<int> (8));
+    tableComponent.setBounds(0, getHeight() / 8, getWidth(), getHeight());
+    searchButton.setBounds(0, 0, getWidth() / 4, getHeight() / 8);
+    clearButton.setBounds(getWidth() / 4, 0, getWidth() / 4, getHeight() / 8);
+    inputArea.setBounds(getWidth() / 4 * 3, 0, getWidth() / 4, getHeight() / 8);
 }
 
 int PlaylistComponent::getNumRows() {
+    std::cout << std::addressof(trackTitles) << std::endl;
     return trackTitles.size();
 }
 
@@ -85,6 +94,7 @@ void PlaylistComponent::paintCell (Graphics& g,
                                    bool rowIsSelected)
 {
     g.drawText(trackTitles[rowNumber], 2, 0, width - 4, height, Justification::centredLeft, true);
+    //g.drawText("4min23s", 2, 0, width - 4, height, Justification::centredLeft, true);
 }
 
 Component* PlaylistComponent::refreshComponentForCell (int rowNumber,
@@ -92,9 +102,10 @@ Component* PlaylistComponent::refreshComponentForCell (int rowNumber,
                                     bool isRowSelected,
                                     Component* existingComponentToUpdate)
 {
-    if (columnId == 2) {
-        if (existingComponentToUpdate == nullptr) {
-            TextButton* btn = new TextButton{"play"};
+    if (columnId == 4) {
+        if (existingComponentToUpdate == nullptr)
+        {
+            TextButton* btn = new TextButton{"DELETE"};
             String id{std::to_string(rowNumber)};
             btn->setComponentID(id);
             btn->addListener(this);
@@ -104,7 +115,55 @@ Component* PlaylistComponent::refreshComponentForCell (int rowNumber,
     return existingComponentToUpdate;
 }
 
-void PlaylistComponent::buttonClicked(Button *button) {
-    int id = std::stoi(button->getComponentID().toStdString());
-    std::cout << "playlist button clicked" << trackTitles[id] << std::endl;
+void PlaylistComponent::buttonClicked(Button *button)
+{
+    if (button == &searchButton) {
+        if ( !trackTitles.empty())
+        {
+            std::cout << "search " << std::endl;
+            trackTitles_bk = trackTitles;
+            for (int i = 0; i < trackTitles.size(); ++i) {
+                if (trackTitles.at(i).find("Brotherhood") != std::string::npos) {
+                    std::cout << "track is found" << std::endl;
+                } else {
+                    trackTitles.erase(trackTitles.begin() + i);
+                }
+            }
+    //        if (std::find(trackTitles.begin(), trackTitles.end(), "Brotherhood.mp3") != trackTitles.end()) {
+    //            std::cout << "track is found" << std::endl;
+    //        } else {
+    //            std::cout << "track not found" << std::endl;
+    //        }
+        }
+    } else if (button == &clearButton) {
+        if (!trackTitles_bk.empty()) {
+            trackTitles = trackTitles_bk;
+        }
+    }
+    else
+    {
+        // delete button clicked
+        int id = std::stoi(button->getComponentID().toStdString());
+        std::cout << "delete the track " << trackTitles[id] << std::endl;
+        // Delete selected track from playlist
+        trackTitles.erase(trackTitles.begin() + id);
+    }
+}
+
+void PlaylistComponent::addToPlaylist(std::string trackName)
+{
+    std::cout << std::addressof(trackTitles) << std::endl;
+    trackTitles.push_back(trackName);
+    // delete the oldest track if there are more than 6 tracks in the playlist
+    if (trackTitles.size() > 6)
+    {
+        trackTitles.erase(trackTitles.begin());
+    }
+    
+    //tableComponent.repaintRow(1);
+    tableComponent.updateContent();
+    tableComponent.repaint();
+    
+    //tableComponent.repaint();
+    //tableComponent.refreshComponentForRow(0, true, <#Component *existingComponentToUpdate#>)
 }

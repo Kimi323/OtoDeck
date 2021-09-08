@@ -3,6 +3,8 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "DJAudioPlayer.h"
 #include "WaveformDisplay.h"
+#include "PlaylistComponent.h"
+#include <vector>
 
 //==============================================================================
 /*
@@ -16,7 +18,8 @@ class DeckGUI    : public Component,
 public:
     DeckGUI(DJAudioPlayer* player,
             AudioFormatManager& formatManagerToUse,
-            AudioThumbnailCache& cacheToUse);
+            AudioThumbnailCache& cacheToUse
+            );
     ~DeckGUI();
 
     void paint (Graphics&) override;
@@ -29,8 +32,8 @@ public:
     void sliderValueChanged (Slider *slider) override;
 
     bool isInterestedInFileDrag (const StringArray &files) override;
-    void filesDropped (const StringArray &files, int x, int y) override; 
-
+    void filesDropped (const StringArray &files, int x, int y) override;
+    
     void timerCallback() override;
 
 private:
@@ -52,8 +55,11 @@ private:
 
     DJAudioPlayer* player;
     WaveformDisplay waveformDisplay;
+    PlaylistComponent playlistComponent;
     
-    bool isPlaying;
+    std::vector<URL> urlList;
+    int currentIndex;
+    bool isLooping;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DeckGUI)
 };

@@ -19,8 +19,11 @@ class DJAudioPlayer : public AudioSource {
     void setPositionRelative(double pos);
     /** get the relative position (between 0 and 1) of the playhead */
     double getPositionRelative();
-    
-
+    /** get the total length in second */
+    double getTrackLengthInSeconds();
+    /** return status of playing or stopped*/
+    bool isPlaying();
+    bool isEndOfTrack();
     void start();
     void stop();
 
